@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <h1>ONLINE STORE</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th onclick="sortTable('title')">Title</th>
+                <th onclick="sortTable('price')">Price</th>
+                <th onclick="sortTable('rating')">Rating</th>
+                <th>Category</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <div class="block">
+        <input class="limit" />
+        <button onclick="changeLimit()">
+            Apply
+        </button>
+    </div>
+    <div class="block2">
+        <button onclick="prevPage()">
+            Prev
+        </button>
+        <div class="pages">
+
+        </div>
+        <button onclick="nextPage()">
+            Next
+        </button>
+    </div>
+
+    <script>
+        let dataLength = 0;
+        let currentPage = 1;
+        let limit = 5;
+
+        getData()
+        async function getData() {
+            await fetch("https://fakestoreapi.com/products").then(res => {
+                return res.json();
+            }).then(res => {
+                localStorage.setItem("products", JSON.stringify(res))
+            })
+        }
+
+        if (document.querySelector("tbody").innerHTML.length < 1) {
+            mountedPage()
+        }
+        function mountedPage() {
+            dataLength = JSON.parse(localStorage.getItem("products")).length;
+            currentPage = 1;
+            limit = 5;
+            console.log("mountedPage")
+            pageAmount(limit);
+            let arr = JSON.parse(localStorage.getItem("products"));
+            let newArr = arr.sort((a, b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0)).slice(0, limit)
+            displayTable(newArr);
+        }
+
+        function prevPage() {
+            if (currentPage != 1) {
+                changePage(currentPage - 1, limit)
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < Math.ceil(dataLength / limit)) {
+                changePage(currentPage + 1, limit)
+            }
+        }
+
+        function changeLimit() {
+            limit = document.querySelector('.limit').value
+            pageAmount(limit)
+            let arr = JSON.parse(localStorage.getItem("products")).slice(0, limit)
+            displayTable(arr)
+        }
+
+        function pageAmount(limit) {
+            console.log("pageAmount")
+
+            let amount = Math.ceil(dataLength / limit)
+            let btns = document.querySelector(".pages")
+            btns.innerHTML = ""
+            for (let i = 0; i < amount; i++) {
+                btns.innerHTML += `<button class = "bt" onclick='changePage(${i + 1}, ${limit})'>${i + 1}</button>`
+            }
+        }
+
+        function changePage(page, limit) {
+            currentPage = page;
+            let arr = JSON.parse(localStorage.getItem("products")).slice(page * limit - limit, page * limit)
+            displayTable(arr)
+        }
+
+        function displayTable(arr) {
+            console.log(arr)
+
+            let table = document.querySelector('tbody');
+            table.innerHTML = ""
+            arr.forEach(el => {
+                table.innerHTML += `
+                    <tr>
+                        <td>${el.id}</td>
+                        <td>${el.title}</td>
+                        <td>${el.price}</td>
+                        <td>${el.rating.rate}</td>
+                        <td onclick='sortByCategory(${el.id})'>${el.category}</td>
+                    </tr>`
+            });
+        }
+
+        let currentCategory = null
+        let titleSortType = null
+        let priceSortType = null
+        let ratingSortType = null
+        function sortTable(type) {
+            let arr = JSON.parse(localStorage.getItem("products"))
+            if (type == 'title') {
+                if (titleSortType == null) {
+                    arr.sort((a, b) => (a.title > b.title) ? 1 : ((b.title > a.title) ? -1 : 0))
+                    titleSortType = true;
+                } else if (titleSortType == true) {
+                    arr.sort((a, b) => (b.title > a.title) ? 1 : ((a.title > b.title) ? -1 : 0))
+                    titleSortType = false;
+                } else {
+                    arr.sort((a, b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0))
+                    titleSortType = null;
+                }
+            } else if (type == 'price') {
+                if (priceSortType == null) {
+                    arr.sort((a, b) => (a.price > b.price) ? 1 : ((b.price > a.price) ? -1 : 0))
+                    priceSortType = true;
+                } else if (priceSortType == true) {
+                    arr.sort((a, b) => (b.price > a.price) ? 1 : ((a.price > b.price) ? -1 : 0))
+                    priceSortType = false;
+                } else {
+                    arr.sort((a, b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0))
+                    priceSortType = null;
+                }
+            } else if (type == 'rating') {
+                if (ratingSortType == null) {
+                    arr.sort((a, b) => (a.rating.rate > b.rating.rate) ? 1 : ((b.rating.rate > a.rating.rate) ? -1 : 0))
+                    ratingSortType = true;
+                } else if (ratingSortType == true) {
+                    arr.sort((a, b) => (b.rating.rate > a.rating.rate) ? 1 : ((a.rating.rate > b.rating.rate) ? -1 : 0))
+                    ratingSortType = false;
+                } else {
+                    arr.sort((a, b) => (a.id > b.id) ? 1 : ((b.id > a.id) ? -1 : 0))
+                    ratingSortType = null;
+                }
+            }
+            localStorage.setItem("products", JSON.stringify(arr))
+            currentCategory = null
+            let disArr = arr.slice(currentPage * limit - limit, currentPage * limit)
+            displayTable(disArr)
+        }
+
+        function sortByCategory(id) {
+            let arr = JSON.parse(localStorage.getItem("products"))
+            let category = arr.find((el) => el.id === id).category
+            console.log(category, currentCategory)
+            let newArr = []
+            if (currentCategory === null) {
+                currentCategory = category
+                currentPage = 1
+                newArr = arr.filter((el) => el.category == category)
+                dataLength = newArr.length
+                pageAmount(limit)
+                localStorage.setItem("products", JSON.stringify(newArr))
+                let disArr = newArr.slice(currentPage * limit - limit, currentPage * limit)
+                displayTable(disArr)
+            } else {
+
+                getData().then(() => mountedPage())
+                currentCategory = null
+            }
+        }
+
+    </script>
+</body>
+
+</html>
